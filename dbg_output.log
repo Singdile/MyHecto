@@ -1,0 +1,145 @@
+warning: struct `Location` is never constructed
+  --> src\editor.rs:19:8
+   |
+19 | struct Location {
+   |        ^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: struct `Line` is never constructed
+ --> src\editor\view\line.rs:2:12
+  |
+2 | pub struct Line {
+  |            ^^^^
+
+warning: `hecto` (bin "hecto") generated 2 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+     Running `target\debug\hecto.exe poem.txt`
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 0
+[src\editor\view.rs:87:9] line_text.len() = 4
+[src\editor\view.rs:87:9] line_text = "test"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 1
+[src\editor\view.rs:87:9] line_text.len() = 4
+[src\editor\view.rs:87:9] line_text = "code"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 2
+[src\editor\view.rs:87:9] line_text.len() = 0
+[src\editor\view.rs:87:9] line_text = ""
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 3
+[src\editor\view.rs:87:9] line_text.len() = 71
+[src\editor\view.rs:87:9] line_text = "Let’stakeacloserlookathowwegeneratedtheVecStringthatholdsthearguments"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 4
+[src\editor\view.rs:87:9] line_text.len() = 42
+[src\editor\view.rs:87:9] line_text = "Wedidsobycallingcollectonwhatenvargsgaveus"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 5
+[src\editor\view.rs:87:9] line_text.len() = 0
+[src\editor\view.rs:87:9] line_text = ""
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 6
+[src\editor\view.rs:87:9] line_text.len() = 81
+[src\editor\view.rs:87:9] line_text = "Iteratorshavebeenwithussincethebeginningofthetutorialit’stimetomeetthemproperly"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 7
+[src\editor\view.rs:87:9] line_text.len() = 96
+[src\editor\view.rs:87:9] line_text = "AsusualIwilltrytofindanontechnicalexampletoillustrateitbeforeexplainingittechnicallyinmoredetail"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 8
+[src\editor\view.rs:87:9] line_text.len() = 0
+[src\editor\view.rs:87:9] line_text = ""
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 9
+[src\editor\view.rs:87:9] line_text.len() = 1
+[src\editor\view.rs:87:9] line_text = "~"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 10
+[src\editor\view.rs:87:9] line_text.len() = 1
+[src\editor\view.rs:87:9] line_text = "~"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 11
+[src\editor\view.rs:87:9] line_text.len() = 1
+[src\editor\view.rs:87:9] line_text = "~"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 12
+[src\editor\view.rs:87:9] line_text.len() = 1
+[src\editor\view.rs:87:9] line_text = "~"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 13
+[src\editor\view.rs:87:9] line_text.len() = 1
+[src\editor\view.rs:87:9] line_text = "~"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 14
+[src\editor\view.rs:87:9] line_text.len() = 1
+[src\editor\view.rs:87:9] line_text = "~"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 15
+[src\editor\view.rs:87:9] line_text.len() = 1
+[src\editor\view.rs:87:9] line_text = "~"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 0
+[src\editor\view.rs:87:9] line_text.len() = 4
+[src\editor\view.rs:87:9] line_text = "test"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 1
+[src\editor\view.rs:87:9] line_text.len() = 4
+[src\editor\view.rs:87:9] line_text = "code"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 2
+[src\editor\view.rs:87:9] line_text.len() = 0
+[src\editor\view.rs:87:9] line_text = ""
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 3
+[src\editor\view.rs:87:9] line_text.len() = 71
+[src\editor\view.rs:87:9] line_text = "Let’stakeacloserlookathowwegeneratedtheVecStringthatholdsthearguments"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 4
+[src\editor\view.rs:87:9] line_text.len() = 42
+[src\editor\view.rs:87:9] line_text = "Wedidsobycallingcollectonwhatenvargsgaveus"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 5
+[src\editor\view.rs:87:9] line_text.len() = 0
+[src\editor\view.rs:87:9] line_text = ""
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 6
+[src\editor\view.rs:87:9] line_text.len() = 81
+[src\editor\view.rs:87:9] line_text = "Iteratorshavebeenwithussincethebeginningofthetutorialit’stimetomeetthemproperly"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 7
+[src\editor\view.rs:87:9] line_text.len() = 96
+[src\editor\view.rs:87:9] line_text = "AsusualIwilltrytofindanontechnicalexampletoillustrateitbeforeexplainingittechnicallyinmoredetail"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 8
+[src\editor\view.rs:87:9] line_text.len() = 0
+[src\editor\view.rs:87:9] line_text = ""
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 9
+[src\editor\view.rs:87:9] line_text.len() = 1
+[src\editor\view.rs:87:9] line_text = "~"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 10
+[src\editor\view.rs:87:9] line_text.len() = 1
+[src\editor\view.rs:87:9] line_text = "~"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 11
+[src\editor\view.rs:87:9] line_text.len() = 1
+[src\editor\view.rs:87:9] line_text = "~"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 12
+[src\editor\view.rs:87:9] line_text.len() = 1
+[src\editor\view.rs:87:9] line_text = "~"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 13
+[src\editor\view.rs:87:9] line_text.len() = 1
+[src\editor\view.rs:87:9] line_text = "~"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 14
+[src\editor\view.rs:87:9] line_text.len() = 1
+[src\editor\view.rs:87:9] line_text = "~"
+[src\editor\view.rs:87:9] "row:{},lenth:{},all:{}" = "row:{},lenth:{},all:{}"
+[src\editor\view.rs:87:9] row = 15
+[src\editor\view.rs:87:9] line_text.len() = 1
+[src\editor\view.rs:87:9] line_text = "~"

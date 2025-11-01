@@ -1,5 +1,5 @@
 
-use std::{clone, ops::Range};
+use std::{clone, fmt::{self, write}, ops::Range};
 use crossterm::cursor::RestorePosition;
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
@@ -181,4 +181,25 @@ impl Line {
         *self = Line::from(&result);
 
     }
+
+    ///在Line后面追加内容
+    pub fn append(&mut self,other:&Self) {
+        let mut concat = self.to_string(); //当前Line的字符内容
+        concat.push_str(&other.to_string()); //合并另一个Line的字符内容
+        *self = Line::from(&concat);//利用concat的内容，生成新的Line，并让原先的指针指向这个Line
+    }
 } 
+
+
+impl fmt::Display for Line  {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        //迭代遍历Line的所有fragment，取出对应的字符串
+        let result: String = self
+            .fragments
+            .iter()
+            .map(|fragment| fragment.grapheme.clone())
+            .collect();
+
+        write!(f, "{result}")
+    }
+}

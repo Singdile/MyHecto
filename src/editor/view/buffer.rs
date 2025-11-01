@@ -47,15 +47,15 @@ impl Buffer {
 
     ///delete,删除光标后面的一位字符
     pub fn delete(&mut self, at: Location) {
-        if at.line_index == self.height() - 1
-            && at.grapheme_index + 1 == self.lines.last().map_or(0, |line| line.grapheme_count()) { return }
-
-        if at.line_index >= self.height() {
-            return;
-        }
-
-        if let Some(line) = self.lines.get_mut(at.line_index) {
-            line.delete(at.grapheme_index);
+        if let Some(line) = self.lines.get(at.line_index) {
+            //判断是不是最后一个
+            if at.grapheme_index >= line.grapheme_count() 
+                && at.line_index.saturating_add(1) < self.lines.len() {
+                    let next_line = self.lines.remove(at.line_index.saturating_add(1));
+                    self.lines[at.line_index].append(&next_line);
+            } else if at.grapheme_index < line.grapheme_count() {//不是最后一个，直接删除光标所在位置的字符
+                self.lines[at.line_index].delete(at.grapheme_index);
+            }
         }
     }
     ///backspace,删除光标前面的一位字符
@@ -63,7 +63,7 @@ impl Buffer {
         if let Some(line) = self.lines.get_mut(at.line_index) {
             if at.line_index > 0 {
                 line.delete(at.grapheme_index - 1);
-                dbg!("{at.grapheme_index}");
+                // dbg!("{at.grapheme_index}");
             }
         }
     }

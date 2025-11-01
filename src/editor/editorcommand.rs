@@ -21,6 +21,7 @@ pub enum EditorCommand {
     Insert(char),
     Delete,
     Backspace,
+    Tab,
     Quit
 }
 
@@ -56,6 +57,9 @@ impl TryFrom<Event> for EditorCommand {
                     //remove char
                     (KeyCode::Delete,_) => { Ok(Self::Delete)},
                     (KeyCode::Backspace,_) => { Ok(Self::Backspace)}
+
+                    //键入TAB键
+                    (KeyCode::Tab,_) => { Ok(Self::Tab)}
 
                     _ => { Err(format!("keycode not surpported: {code:?}"))}
 

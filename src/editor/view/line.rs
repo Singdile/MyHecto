@@ -1,5 +1,5 @@
 
-use std::{clone, fmt::{self, write}, ops::Range};
+use std::{clone, fmt::{self, write}, ops::Range, path::is_separator};
 use crossterm::cursor::RestorePosition;
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
@@ -39,7 +39,7 @@ impl Line {
         let fragments:Vec<TextFragment> = line_str
             .graphemes(true)
             .map(|grapheme| {
-                let (replacement, rendered_width) = Self::replcement_character(grapheme)
+                let (mut replacement, rendered_width) = Self::replcement_character(grapheme)
                     .map_or_else(
                         || {
                             let unicode_width = grapheme.width();
@@ -52,6 +52,7 @@ impl Line {
                         },
                         |replacement| (Some(replacement), GraphemeWidth::Full),
                     );
+                
 
                 TextFragment {
                     grapheme: grapheme.to_string(),//字素簇，这里还是原封不动地保存解析出来的字符串
@@ -70,7 +71,7 @@ impl Line {
         let width = for_str.width();
         match for_str {
             " " => None, //空格
-            "\t" => Some(' '),
+            "\t" => None, //特殊处理Tab按键
             _ if width > 0 &&for_str.trim().is_empty() => Some('␣'),
             _ if for_str.width() == 0 => {//不可见字符
                 let mut chars = for_str.chars();
@@ -96,13 +97,42 @@ impl Line {
         let mut current_pos = 0;
         
         for fragment in &self.fragments {
-            let fragment_end = fragment.rendered_width.saturating_add(current_pos);
+
+            //计算当前grapheme的渲染宽度
+            let fragment_width =  if fragment.grapheme == "\t" {
+                //默认Tab占4个字符，键入Tab键会移动到mod 4 为0的地方去
+                4 - (current_pos % 4)
+            } else {
+                //处理非Tab的渲染长度
+                match fragment.rendered_width {
+                   GraphemeWidth::Zero => 0,
+                   GraphemeWidth::Half => 1,
+                   GraphemeWidth::Full => 2, 
+                }
+            };
+
             if current_pos >= range.end {//可视范围地末尾
                 break;
             }
-            
+
+            //加上当前grapheme后的长度
+           let fragment_end = current_pos.saturating_add(fragment_width); 
+            //渲染逻辑
             if fragment_end > range.start {//判断是否可以显示
-                if fragment_end > range.end || current_pos < range.start {//处理左右边界处的可视字符
+                
+                //处理tab键的填充
+                if fragment.grapheme == "\t" {
+                    // 计算 Tab 占据的起始列和结束列（在可视范围内的部分）
+                    let start_col = current_pos.max(range.start);
+                    let end_col = fragment_end.min(range.end);
+                    
+                    // 需要渲染的空格数量
+                    let num_spaces_to_render = end_col.saturating_sub(start_col);
+                    
+                    for _ in 0..num_spaces_to_render {
+                        result.push(' ');
+                    }
+                } else if fragment_end > range.end || current_pos < range.start {//处理左右边界处的可视字符
                     result.push('⋯');
                 } else if let Some(value) = fragment.replacement {
                     result.push(value);
@@ -122,15 +152,21 @@ impl Line {
 
     ///返回from 0 to grapheme_index,the visual length on terminal
     pub fn width_until(&self,grapheme_index:usize) -> usize {
-        self.fragments
-            .iter()
-            .take(grapheme_index)
-            .map(|fragment| match fragment.rendered_width {
-                GraphemeWidth::Half => 1,
-                GraphemeWidth::Full => 2,
-                GraphemeWidth::Zero => 0,
-            })
-            .sum()
+        let mut width = 0;
+        for fragment in self.fragments.iter().take(grapheme_index) {
+            let fragment_width = if fragment.grapheme == "\t" {
+                4 - (width % 4)
+            } else {
+                match fragment.rendered_width {
+                    GraphemeWidth::Zero => 0,
+                    GraphemeWidth::Half => 1,
+                    GraphemeWidth::Full => 2,
+                }
+            };
+            width += fragment_width;
+        }
+
+        width
     }
 
     ///translate &str to Vec<TextFragment>

@@ -108,9 +108,16 @@ impl View {
             EditorCommand::Insert(ch) => self.insert_char(ch),
             EditorCommand::Delete => { self.delete()},
             EditorCommand::Backspace => {self.backspace()},
+            EditorCommand::Tab => { self.tab()} 
         }
     }
 
+    ///处理按键Tab
+    fn tab(&mut self) {
+        //处理Tab为，插入\t
+        self.insert_char('\t');
+        self.need_redraw = true;
+    }
 
     ///执行delete,删除光标后面的一位字符
     fn delete(&mut self) {
@@ -277,7 +284,7 @@ impl View {
    ///修改可视范围，使得光标所在行、列在屏幕的可视范围
    fn scroll_text_location_into_view(&mut self) {
         let Position { column, row } = self.text_locaton_to_position();
-       self.scroll_vertically(row);
+        self.scroll_vertically(row);
         self.scroll_horizontally(column);
    }
 

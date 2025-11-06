@@ -154,7 +154,7 @@ impl Line {
     pub fn width_until(&self,grapheme_index:usize) -> usize {
         let mut width = 0;
         for fragment in self.fragments.iter().take(grapheme_index) {
-            let fragment_width = if fragment.grapheme == "\t" {
+            let fragment_width = if fragment.grapheme == "\t" {//对于tab键，会占据可变的长度
                 4 - (width % 4)
             } else {
                 match fragment.rendered_width {
@@ -216,6 +216,14 @@ impl Line {
         }
         *self = Line::from(&result);
 
+    }
+
+    ///split_off(usize)，切割当前行，返回右端部分
+    pub fn split_off(&mut self,at: usize) -> Self {
+        let newLine = self.fragments.split_off(at);
+        Line {
+            fragments: newLine,
+        }
     }
 
     ///在Line后面追加内容

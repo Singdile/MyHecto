@@ -109,9 +109,15 @@ impl View {
             EditorCommand::Delete => { self.delete()},
             EditorCommand::Backspace => {self.backspace()},
             EditorCommand::Tab => { self.tab()} 
+            EditorCommand::Enter => { self.enter()}
         }
     }
 
+    ///处理按键Enter，键入后将当前分为两行
+    fn enter(&mut self) {
+        self.buffer.tab(self.text_location);
+        self.need_redraw = true;
+    }
     ///处理按键Tab
     fn tab(&mut self) {
         //处理Tab为，插入\t
@@ -129,10 +135,13 @@ impl View {
     ///执行backspace,删除光标前面的一个字符
     fn backspace(&mut self) {
         //光标位置前面有一位
-        self.buffer.backspace(self.text_location);
+        // self.buffer.backspace(self.text_location);
         //光标向前移一位
+        // self.move_left();
+        //光标向前移动一位
         self.move_left();
 
+        //
         self.need_redraw = true;
     }
 
@@ -213,6 +222,7 @@ impl View {
     }
     ///移动Location,向右移动1个grapheme
     fn move_right(&mut self) {
+        //注意这里是统计的grpaheme的个数,向右移动也是以grapheme为单位的。对于像tab这样一个grapheme却可能占几个视觉位置的，光标移动到中间的空位时会直接跳转到下一个grapheme
         let line_grapheme_len = self.buffer.lines.get(self.text_location.line_index).map_or(0, |v| v.grapheme_count());
         if self.text_location.grapheme_index < line_grapheme_len {
             self.text_location.grapheme_index += 1;

@@ -61,10 +61,33 @@ impl Buffer {
     ///backspace,删除光标前面的一位字符
     pub fn backspace(&mut self, at: Location) {
         if let Some(line) = self.lines.get_mut(at.line_index) {
-            if at.line_index > 0 {
-                line.delete(at.grapheme_index - 1);
-                // dbg!("{at.grapheme_index}");
+            if at.line_index == 0 && at.grapheme_index == 0 {
+                //do nothing
+            } else if at.line_index != 0 && at.grapheme_index == 0 {//光标位于一行的开头,转换为delete上一行的末尾
+                let previous_line = at.line_index.saturating_sub(1);
+
+                let previous_index = if let Some(line) = self.lines.get(previous_line) {
+                    line.grapheme_count()
+                } else {
+                    0
+                };
+
+                let previous_positon = Location {
+                    line_index: previous_line,
+                    grapheme_index: previous_index
+                };
+               self.delete(previous_positon);
+            } else {//正常情况下，删除
+                line.delete(at.grapheme_index.saturating_sub(1));
             }
+        }
+    }
+
+    ///处理tab按键
+    pub fn tab(&mut self,at:Location) {
+        if let Some(line) = self.lines.get_mut(at.line_index) {
+            let new_line = line.split_off(at.grapheme_index);
+            self.lines.insert(at.line_index.saturating_add(1), new_line);
         }
     }
 }

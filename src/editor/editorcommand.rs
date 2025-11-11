@@ -19,6 +19,7 @@ pub enum EditorCommand {
     Move(Direction),
     Resize(Size),
     Insert(char),
+    Save,
     Delete,
     Backspace,
     Tab,
@@ -41,6 +42,9 @@ impl TryFrom<Event> for EditorCommand {
             }) => {
                 match (code,modifiers) {
                     (KeyCode::Char('c'),KeyModifiers::CONTROL) => { Ok(Self::Quit)},
+                    (KeyCode::Char('s'),KeyModifiers::CONTROL) => { Ok(Self::Save)},                    
+
+
                     //按键移动光标的事件
                     (KeyCode::PageUp,_) => { Ok(Self::Move(Direction::Pageup))},
                     (KeyCode::PageDown,_) => { Ok(Self::Move(Direction::PageDown))},
@@ -57,15 +61,14 @@ impl TryFrom<Event> for EditorCommand {
 
                     //remove char
                     (KeyCode::Delete,_) => { Ok(Self::Delete)},
-                    (KeyCode::Backspace,_) => { Ok(Self::Backspace)}
+                    (KeyCode::Backspace,_) => { Ok(Self::Backspace)},
 
                     //键入TAB键
-                    (KeyCode::Tab,_) => { Ok(Self::Tab)}
+                    (KeyCode::Tab,_) => { Ok(Self::Tab)},
 
                     //键入Enter键
-                    (KeyCode::Enter,_) => { Ok(Self::Enter)}
-                    _ => { Err(format!("keycode not surpported: {code:?}"))}
-
+                    (KeyCode::Enter,_) => { Ok(Self::Enter)},
+                    _ => { Err(format!("keycode not surpported: {code:?}"))},
                 }
 
             }

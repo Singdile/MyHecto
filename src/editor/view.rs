@@ -2,9 +2,11 @@ mod buffer;
 mod line;
 
 use std::cmp::min;
+use std::ops::Sub;
 
 use super::editorcommand::{Direction,EditorCommand};
 use super::terminal::{Size, Terminal};
+use super::DocumentStatus;
 use crate::editor::terminal::Position;
 use crate::editor::view::buffer::Buffer;
 
@@ -36,6 +38,21 @@ pub struct View {
 
 
 impl View {
+    pub fn new(margin_bottom:usize) -> View{
+        let terminal_size = Terminal::size().unwrap_or_default();
+        Self {
+            buffer: Buffer::default(),
+            need_redraw: true,
+            size: Size {
+                columns:terminal_size.columns,
+                rows: terminal_size.rows.saturating_add(margin_bottom),//margin_bottom用于留下一定空间展示statusbar
+            },
+            text_location:Location::default(),
+            scroll_offset:Position::default(),
+        }
+    }
+
+
     /// 负责打印输出内容，以及空行
     pub fn render(&mut self) {
         if !self.need_redraw {
@@ -62,10 +79,18 @@ impl View {
                 Self::render_line(current_row, "~");
             }
         }
-
+        
         self.need_redraw = false;//渲染之后，将need_redraw重置
     }
 
+    pub fn get_status(&self) -> DocumentStatus {
+        DocumentStatus { 
+            total_lines: self.buffer.height(),
+            current_line_index: self.text_location.line_index,
+            is_modified: self.buffer.dirty,
+            file_name: self.buffer.file_name.clone(), 
+        }
+    }
 
     ///窗口大小变化的时候，需要重新绘制
     pub fn resize(&mut self,to: Size) {
@@ -108,9 +133,15 @@ impl View {
             EditorCommand::Insert(ch) => self.insert_char(ch),
             EditorCommand::Delete => { self.delete()},
             EditorCommand::Backspace => {self.backspace()},
-            EditorCommand::Tab => { self.tab()} 
-            EditorCommand::Enter => { self.enter()}
+            EditorCommand::Tab => { self.tab()},
+            EditorCommand::Enter => { self.enter()},
+            EditorCommand::Save => { self.save()}
         }
+    }
+
+    /// 处理按键ctr+s
+    fn save(&mut self) {
+        let _ = self.buffer.save();
     }
 
     ///处理按键Enter，键入后将当前分为两行
@@ -134,14 +165,10 @@ impl View {
 
     ///执行backspace,删除光标前面的一个字符
     fn backspace(&mut self) {
-        //光标位置前面有一位
-        // self.buffer.backspace(self.text_location);
-        //光标向前移一位
-        // self.move_left();
         //光标向前移动一位
         self.move_left();
 
-        //
+        self.delete();
         self.need_redraw = true;
     }
 
@@ -152,7 +179,9 @@ impl View {
             .lines
             .get(self.text_location.line_index)
             .map_or(0, |line| line.grapheme_count());
+
         self.buffer.insert_char(ch,self.text_location);
+
         let new_len = self
             .buffer
             .lines
@@ -318,8 +347,8 @@ impl View {
             self.need_redraw = true;
         }
     }
-}
 
+}
 
 
 impl Default for View {

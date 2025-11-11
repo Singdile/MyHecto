@@ -1,6 +1,7 @@
 mod terminal;
 mod view;
 mod editorcommand;
+mod statusbar;
 
 use std::io::Error;
 use std::panic::{set_hook,take_hook};
@@ -14,19 +15,28 @@ use view::View;
 
 
 use crate::editor::editorcommand::EditorCommand;
+use crate::editor::statusbar::StatusBar;
+use crate::editor::terminal::Size;
 ///save the caret position
 #[derive(Default)]
 struct Location {
     x: usize,
     y: usize,
 }
-#[derive(Default)]
 pub struct Editor {
     should_quit: bool,
-    view: View
+    view: View,
+    status_bar: StatusBar
 }
 
-
+///存储当前文档的基本信息的结构
+#[derive(Default,Debug,PartialEq, Eq)]
+pub struct DocumentStatus {
+    total_lines:usize,
+    current_line_index: usize,
+    is_modified: bool,
+    file_name: Option<String>
+}
 
 impl Editor {
     ///初始化一个副屏幕，如果有合法的文件传入，则读取该文件到buffer
@@ -40,7 +50,7 @@ impl Editor {
         Terminal::initialize()?;//打开一个副屏幕
 
         //下面初始化Editor的元素
-        let mut view = View::default();
+        let mut view = View::new(2);
         let args:Vec<String> = env::args().collect();
 
         if let Some(path) = args.get(1) {  //如果有传入文件参数，则更新buffer
@@ -49,7 +59,8 @@ impl Editor {
 
         Ok( Self {
             should_quit:false,
-            view
+            view,
+            status_bar: StatusBar::new(1)
         })
         
 
@@ -75,6 +86,10 @@ impl Editor {
                     }
                 }
             }
+
+            //处理事件之后，可能文本内容发生改变，即statsbar的内容改变，判断是否需要修改
+            let status = self.view.get_status();
+            self.status_bar.update_status(status);
         }
      
     }
@@ -105,7 +120,11 @@ impl Editor {
                 if matches!(command,EditorCommand::Quit) {
                     self.should_quit = true;
                 } else {
+                    if let EditorCommand::Resize(size) = command {
+                        self.status_bar.resize(size);
+                    }
                     self.view.handle_command(command);
+
                 }
             },
             Err(err) => {}
@@ -118,7 +137,7 @@ impl Editor {
     fn refresh_screen(&mut self) {//刷新屏幕，这里忽略了对error的处理，即使发生也只是光标是否可见的问题
         let _ = Terminal::hide_caret();
         self.view.render();//对整个屏幕渲染
-
+        self.status_bar.render();//渲染状态栏
         let _ = Terminal::move_caret_to(self.view.caret_position());
 
         let _ = Terminal::show_caret();

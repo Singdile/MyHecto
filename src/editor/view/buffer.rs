@@ -1,11 +1,14 @@
 use core::default::Default;
-use std::fs::read_to_string;
+use std::fs::{read_to_string,File};
 use std::io::Error;
+use std::io::Write;
 use super::Location;
 use super::line::Line;
 #[derive(Default)]
 pub struct Buffer {
-    pub lines: Vec<Line>
+    pub lines: Vec<Line>,
+    pub file_name: Option<String>,
+    pub dirty: bool, //修改位，表示是否修改
 }
 
 
@@ -24,7 +27,12 @@ impl Buffer {
         for line in contents.lines() {
            content_lines.push(Line::from(line)); 
         }        
-        Ok(Self { lines: content_lines })
+        Ok(
+            Self { 
+                lines: content_lines,
+                file_name: Some(file_name.to_string()),
+                dirty: false
+         })
     }
 
     ///文本的行数
@@ -39,8 +47,10 @@ impl Buffer {
         }
         if at.line_index == self.height() {
             self.lines.push(Line::from(&character.to_string()));
+            self.dirty = true;
         } else if let Some(line) = self.lines.get_mut(at.line_index) {
             line.insert_char(character,at.grapheme_index);
+            self.dirty = true;
         }
 
     }
@@ -53,8 +63,10 @@ impl Buffer {
                 && at.line_index.saturating_add(1) < self.lines.len() {
                     let next_line = self.lines.remove(at.line_index.saturating_add(1));
                     self.lines[at.line_index].append(&next_line);
+                    self.dirty = true;
             } else if at.grapheme_index < line.grapheme_count() {//不是最后一个，直接删除光标所在位置的字符
                 self.lines[at.line_index].delete(at.grapheme_index);
+                self.dirty = true;
             }
         }
     }
@@ -77,8 +89,10 @@ impl Buffer {
                     grapheme_index: previous_index
                 };
                self.delete(previous_positon);
+               self.dirty = true;
             } else {//正常情况下，删除
                 line.delete(at.grapheme_index.saturating_sub(1));
+                self.dirty = true;
             }
         }
     }
@@ -88,6 +102,21 @@ impl Buffer {
         if let Some(line) = self.lines.get_mut(at.line_index) {
             let new_line = line.split_off(at.grapheme_index);
             self.lines.insert(at.line_index.saturating_add(1), new_line);
+            self.dirty = true
         }
+    }
+
+
+    ///处理指令ctr+buffer
+    pub fn save(&mut self) -> Result<(),Error> {
+        if let Some(file_name) = &self.file_name  {
+           let mut file = File::create(file_name)?;
+           for line in &self.lines {
+                writeln!(file,"{line}")?;
+           } 
+
+           self.dirty = false;
+        }       
+        Ok(())
     }
 }

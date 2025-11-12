@@ -83,6 +83,7 @@ impl View {
         self.need_redraw = false;//渲染之后，将need_redraw重置
     }
 
+    ///返回文本信息
     pub fn get_status(&self) -> DocumentStatus {
         DocumentStatus { 
             total_lines: self.buffer.height(),

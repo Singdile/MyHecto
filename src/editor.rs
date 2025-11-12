@@ -2,6 +2,7 @@ mod terminal;
 mod view;
 mod editorcommand;
 mod statusbar;
+mod documentstatus;
 
 use std::io::Error;
 use std::panic::{set_hook,take_hook};

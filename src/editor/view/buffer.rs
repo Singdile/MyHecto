@@ -4,10 +4,13 @@ use std::io::Error;
 use std::io::Write;
 use super::Location;
 use super::line::Line;
+
+use crate::editor::fileinfo::FileInfo;
+
 #[derive(Default)]
 pub struct Buffer {
     pub lines: Vec<Line>,
-    pub file_name: Option<String>,
+    pub file_info: FileInfo,
     pub dirty: bool, //修改位，表示是否修改
 }
 
@@ -30,7 +33,7 @@ impl Buffer {
         Ok(
             Self { 
                 lines: content_lines,
-                file_name: Some(file_name.to_string()),
+                file_info:FileInfo::from(file_name), 
                 dirty: false
          })
     }
@@ -109,13 +112,13 @@ impl Buffer {
 
     ///处理指令ctr+buffer
     pub fn save(&mut self) -> Result<(),Error> {
-        if let Some(file_name) = &self.file_name  {
-           let mut file = File::create(file_name)?;
-           for line in &self.lines {
-                writeln!(file,"{line}")?;
-           } 
+        if let Some(path) = &self.file_info.path {
+            let mut file = File::create(path)?;//以write的方式打开文件，如果文件不存在则创建，如果存在则会覆盖
 
-           self.dirty = false;
+            for line in &self.lines {
+                writeln!(file,"{line}")?;
+            }
+            self.dirty = false;
         }       
         Ok(())
     }

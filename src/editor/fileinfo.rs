@@ -4,7 +4,7 @@ use std::{
 };
 
 ///存储文件地址的数据结构
-#[derive(Debug,Clone,Clone)]
+#[derive(Default,Debug,Clone)]
 pub struct FileInfo {
     pub path: Option<PathBuf>,
 }

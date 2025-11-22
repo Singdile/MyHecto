@@ -3,18 +3,16 @@ mod line;
 
 use std::cmp::min;
 use std::ops::Sub;
-
+use super::{NAME,VERSION};
 use super::editorcommand::{Direction,EditorCommand};
 use super::terminal::{Size, Terminal};
-use super::DocumentStatus;
+use super::documentstatus::DocumentStatus;
 use crate::editor::terminal::Position;
 use crate::editor::view::buffer::Buffer;
 
 use unicode_segmentation::UnicodeSegmentation;
 use crate::editor::view::line::Line;
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-const NAME: &str = env!("CARGO_PKG_NAME");
 #[derive(Copy, Clone,Default)]
 pub struct Location {
     pub grapheme_index:usize,
@@ -32,12 +30,11 @@ pub struct View {
     size: Size,
     text_location: Location,//文本中的第几行的第几个 grapheme
     scroll_offset: Position,//物理屏幕上的行列
-    // location: Location,  //文本的绝对行数
-    // scroll_offset: Location //从文本的第几行开始渲染
 }
 
 
 impl View {
+    ///初始化view,margin是给底部的状态留下的空间
     pub fn new(margin_bottom:usize) -> View{
         let terminal_size = Terminal::size().unwrap_or_default();
         Self {
@@ -45,7 +42,7 @@ impl View {
             need_redraw: true,
             size: Size {
                 columns:terminal_size.columns,
-                rows: terminal_size.rows.saturating_add(margin_bottom),//margin_bottom用于留下一定空间展示statusbar
+                rows: terminal_size.rows.saturating_sub(margin_bottom),//margin_bottom用于留下一定空间展示statusbar
             },
             text_location:Location::default(),
             scroll_offset:Position::default(),
@@ -89,7 +86,7 @@ impl View {
             total_lines: self.buffer.height(),
             current_line_index: self.text_location.line_index,
             is_modified: self.buffer.dirty,
-            file_name: self.buffer.file_name.clone(), 
+            file_name: format!("{}",self.buffer.file_info), 
         }
     }
 

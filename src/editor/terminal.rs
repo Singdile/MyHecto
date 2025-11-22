@@ -1,7 +1,7 @@
 use crossterm::cursor::{MoveTo,Hide,Show};
-use crossterm::style::Print;
+use crossterm::style::{Attribute, Print};
 use crossterm::{queue, Command};
-use crossterm::terminal::{disable_raw_mode,enable_raw_mode,size,Clear,ClearType,EnterAlternateScreen,LeaveAlternateScreen};
+use crossterm::terminal::{Clear, ClearType, DisableLineWrap, EnableLineWrap, EnterAlternateScreen, LeaveAlternateScreen, SetTitle, disable_raw_mode, enable_raw_mode, size};
 use std::io::{stdout,Write,Error};
 pub struct Terminal {}
 #[derive(Clone, Copy)]
@@ -43,6 +43,7 @@ impl Terminal {
 impl Terminal {
     pub fn terminate() -> Result<(),std::io::Error> {
         Self::leave_alternate_screen()?; //结束的时候，离开副屏幕
+        Self::enable_line_wrap()?; //开启自动换行
         Self::show_caret()?;
         Self::execute()?;
         disable_raw_mode()?;
@@ -52,6 +53,7 @@ impl Terminal {
     pub fn initialize() -> Result<(),std::io::Error> {
         enable_raw_mode()?;//开启终端的原始模式
         Self::enter_alternate_screen()?;//进入副屏幕
+        Self::diable_line_wrap()?;//关闭自动换行
         Self::clear_screen()?;
         Self::execute()?;
         Ok(())
@@ -129,5 +131,33 @@ impl Terminal {
 
     pub fn queue_command<T:Command>(command:T) -> Result<(),Error> {
         queue!(stdout(),command)
+    }
+
+    ///用于将该行高亮显示
+    pub fn print_inverted_color_row(row:usize, line_text:&str) -> Result<(),Error> {
+        // let width = Self::size()?.columns;
+
+        //这里{:}中的：后面shs是用于输出格式控制的，使用$表示前面要使用外部的变量参数
+        //format!("{}{}{}")，开头和结尾的参数用于颜色反转参数,这个参数是g给终端看的的
+        // Self::print_row(row, &format!("{}{:<width$}{}",Attribute::Reverse,line_text,Attribute::Reset,width = width))
+        Self::print_row(row, line_text)
+    }
+
+    ///关闭自动换行，对于一行长文字，超出终端的宽度的部分，将不会被看到
+    pub fn diable_line_wrap() -> Result<(),Error> {
+        Self::queue_command(DisableLineWrap)?;
+        Ok(())
+    }
+
+    ///开启自动换行，对于一行长文字，终端会自动将剩余的文字显示在下一行
+    pub fn enable_line_wrap() -> Result<(),Error> {
+        Self::queue_command(EnableLineWrap)?;
+        Ok(())
+    }
+
+    ///设置终端的title
+    pub fn set_title(title: &str) -> Result<(),Error> {
+        Self::queue_command(SetTitle(title))?;
+        Ok(())
     }
 }

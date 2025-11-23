@@ -1,6 +1,8 @@
 
 use std::result;
 
+use crate::editor::{statusbar, terminal::Position};
+
 use super::{
     terminal::{Size,Terminal},
     documentstatus::DocumentStatus,   
@@ -9,33 +11,55 @@ use super::{
 ///代表状态栏的信息的结构体
 pub struct StatusBar {
     current_status: DocumentStatus, //记录文件当前状态即状态栏的显示信息
+
     //下面的信息主要表示状态栏的显示位置
-    needs_redraw: bool, //是否需要重新渲染
-    margin_bottom: usize,//表示终端预留底部几行用于状态栏
     width: usize,//状态栏的宽度
     position_rows: usize, //状态栏实际位于终端的行数
-    // is_visible: bool, //状态栏是否可见
+    margin_bottom: usize,//表示终端预留底部几行用于状态栏
+
+    //是否可见与渲染
+    is_visible: bool, //状态栏是否可见
+    needs_redraw: bool, //是否需要重新渲染
+
 }
 
 impl StatusBar {
     ///初始化statusBar,margin_bottom表示位于倒数第几行
+    /// 初始化状态栏的位置，但是状态栏的显示信息还没有初始化
     pub fn new(margin_bottom: usize) -> Self {
         let size = Terminal::size().unwrap_or_default();
-
-        Self { 
-            current_status: DocumentStatus::default(),
-            needs_redraw: true,
+        let mut statusbar = Self {
+            current_status: DocumentStatus::default(), //初始化为空
             margin_bottom,
+            needs_redraw: true,
             width: size.columns,
-            //绘制在预留空间的第一行
-            position_rows: size.rows.saturating_sub(margin_bottom)
-        }
+            position_rows:0,
+            is_visible:false,//初始化设置为不可见
+        };
+
+        //具体由终端size,更新状态栏的位置参数,设置是否可见
+        statusbar.resize(size);
+
+        statusbar
+
     }
 
-    ///当terminal的size更新的时候，更新statusBar的位置参数
+    ///当terminal的size更新的时候，更新statusBar的位置参数,并设置状态栏是否可见
     pub fn resize(&mut self, size: Size) {
         self.width = size.columns;
-        self.position_rows = size.rows.saturating_sub(self.margin_bottom);
+        let mut position_row = 0;
+        let mut is_visible = false;
+
+        if let Some(result) = size.rows
+                .checked_sub(self.margin_bottom)
+                .and_then(|result| Some(result)) 
+        {
+            position_row = result;
+            is_visible = true; //状态设置为可见
+        }
+
+        self.position_rows = position_row;
+        self.is_visible = is_visible;
         self.needs_redraw = true;
     }
 
@@ -48,15 +72,35 @@ impl StatusBar {
     }
     ///渲染statusbar
     pub fn render(&mut self) {
-        if !self.needs_redraw { //判断是否需要渲染
+        //检查是否满足渲染条件
+        if !self.needs_redraw || !self.is_visible {
             return;
         }
+        
+        //hecto.rs - 23 lines (modified)       2/23
+        if let Ok(size) = Terminal::size() {
+            //拼装组合起，显示的信息
+            let line_count = self.current_status.line_count_to_string();
+            let modified_indicator = self.current_status.modified_indicator_to_string();
 
-        let mut status = format!("{:?}",self.current_status);
-        status.truncate(self.width);  
-        //执行渲染
-        let result = Terminal::print_row(self.position_rows, &status);
-        self.needs_redraw = false;
+            let beginning = format!("{} - {} {}",self.current_status.file_name, line_count, modified_indicator);
+
+            let position_indicator = self.current_status.position_indicator_to_string();
+
+            //显示的信息
+            let right_len_left = self.width.strict_sub(beginning.len());
+            let status_info = format!("{beginning}{position_indicator:>right_len_left$}");
+            
+            //打印
+           let to_print = if status_info.len() <= size.columns {
+                status_info
+           } else {
+               String::new()
+           };
+
+           let result = Terminal::print_row(self.position_rows, &to_print);
+           self.needs_redraw = false; 
+        }
     }
 }
 

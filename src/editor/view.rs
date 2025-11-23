@@ -30,6 +30,7 @@ pub struct View {
     size: Size,
     text_location: Location,//文本中的第几行的第几个 grapheme
     scroll_offset: Position,//物理屏幕上的行列
+    margin_bottom: usize, //记录View预留给状态栏空间大小
 }
 
 
@@ -46,6 +47,7 @@ impl View {
             },
             text_location:Location::default(),
             scroll_offset:Position::default(),
+            margin_bottom,
         }
     }
 
@@ -92,7 +94,11 @@ impl View {
 
     ///窗口大小变化的时候，需要重新绘制
     pub fn resize(&mut self,to: Size) {
-        self.size = to;
+        self.size = Size {
+            columns: to.columns,
+            rows: to.rows.saturating_sub(self.margin_bottom),
+        };
+
         self.scroll_text_location_into_view();
         self.need_redraw = true;
     }
@@ -357,6 +363,7 @@ impl Default for View {
             size: Size::default(),
             text_location: Location::default(),
             scroll_offset: Position::default(),
+            margin_bottom: 0,
         }
     }
 }

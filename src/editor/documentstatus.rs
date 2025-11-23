@@ -19,14 +19,14 @@ impl DocumentStatus {
         }
     }
 
-    ///展示当前文件的全部行号
+    ///展示当前文件的全部行号 xx lines
     pub fn line_count_to_string(&self) -> String {
         format!("{} lines",self.total_lines)
     }
 
-    ///当前所在行号
+    ///当前所在行号 2/23
     pub fn position_indicator_to_string(&self) -> String {
-        format!("{}/{}",self.current_line_index + 1,self.total_lines)
+        format!("{}/{}",self.current_line_index.saturating_add(1),self.total_lines)
     }
 
 }

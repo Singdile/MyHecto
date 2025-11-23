@@ -18,6 +18,7 @@ use view::View;
 
 use crate::editor::editorcommand::EditorCommand;
 use crate::editor::statusbar::StatusBar;
+use documentstatus::DocumentStatus;
 use crate::editor::terminal::Size;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");//版本号
@@ -36,6 +37,7 @@ pub struct Editor {
     should_quit: bool,
     view: View,
     status_bar: StatusBar,
+    title: String,
 }
 
 
@@ -51,20 +53,23 @@ impl Editor {
         Terminal::initialize()?;//打开一个副屏幕
 
         //下面初始化Editor的元素
-       let mut view = View::new(2);
-       let args: Vec<String> = env::args().collect(); 
-       if let Some(file_name) = args.get(1) { //第二个参数是传递进去的
-            view.load(&file_name);
-       }
+        let mut editor = Self {
+            should_quit: false,
+            view: View::new(2), //简单初始化为空
+            status_bar: StatusBar::new(2),//这里只是简单初始化为空,确定了状态栏的位置信息
+            title: String::new(),
+        };
 
-       Ok(
-            Self {
-                should_quit: false,
-                view,
-                status_bar: StatusBar::new(2),
-            }
-       )
+        //加载文件内容，更新View信息
+        let args: Vec<String> = env::args().collect();
+        if let Some(file_name) = args.get(1) {
+            editor.view.load(&file_name); //加载文件内容
+        }
 
+        //更新状态栏的文字信息
+        editor.refresh_statusbar();
+        
+        Ok(editor)
     }
 
 
@@ -149,6 +154,20 @@ impl Editor {
 
     }
 
+    ///更新状态栏关于文件的信息
+    pub fn refresh_statusbar(&mut self) {
+        let status = self.view.get_status();
+        let title = format!("{} - {NAME}", status.file_name); //注意，NAME是全局的变量参数
+
+        self.status_bar.update_status(status);//更新状态栏的文件参数
+
+        //正确设置终端的文件显示名
+        if title != self.title && matches!(Terminal::set_title(&title),Ok(())) {
+            self.title = title;
+        }
+    }
+
+    
 
 }
 

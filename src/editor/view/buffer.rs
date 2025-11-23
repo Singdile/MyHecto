@@ -10,7 +10,7 @@ use crate::editor::fileinfo::FileInfo;
 #[derive(Default)]
 pub struct Buffer {
     pub lines: Vec<Line>,
-    pub file_info: FileInfo,
+    pub file_info: FileInfo,//表示显示的文件的路径
     pub dirty: bool, //修改位，表示是否修改
 }
 

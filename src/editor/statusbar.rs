@@ -98,7 +98,7 @@ impl StatusBar {
                String::new()
            };
 
-           let result = Terminal::print_row(self.position_rows, &to_print);
+           let result = Terminal::print_inverted_color_row(self.position_rows, &to_print);
            self.needs_redraw = false; 
         }
     }

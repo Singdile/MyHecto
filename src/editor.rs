@@ -4,6 +4,7 @@ mod editorcommand;
 mod statusbar;
 mod documentstatus;
 mod fileinfo;
+mod messagebar;
 
 use std::io::Error;
 use std::panic::{set_hook,take_hook};

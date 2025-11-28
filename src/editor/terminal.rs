@@ -4,7 +4,7 @@ use crossterm::{queue, Command};
 use crossterm::terminal::{Clear, ClearType, DisableLineWrap, EnableLineWrap, EnterAlternateScreen, LeaveAlternateScreen, SetTitle, disable_raw_mode, enable_raw_mode, size};
 use std::io::{stdout,Write,Error};
 pub struct Terminal {}
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub struct Size { 
     pub columns:usize,
     pub rows: usize

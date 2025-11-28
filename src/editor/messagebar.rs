@@ -1,18 +1,36 @@
+use std::io::Error;
+use crate::editor::terminal::Size;
 
+use super::uicomponent::UIComponent;
+use super::Terminal;
 ///代表简单信息的结构，比如键入ctr+s 显示 save
+#[derive(Default)]
 pub struct Messagebar {
-    current_message: String, //当前的信息
-
-    //下面的信息主要表示信息栏的显示位置
-    width: usize,//状态栏的宽度
-    position_rows: usize, //状态栏实际位于终端的行数
-    margin_bottom: usize,//表示终端预留底部几行用于状态栏
-
-    //是否可见与渲染
-    is_visible: bool, //状态栏是否可见
-    needs_redraw: bool, //是否需要重新渲染
+    current_message: String,
+    needs_redraw: bool,
 }
 
 impl Messagebar {
-    ///初始化
+    pub fn update_message(&mut self, new_message: String) {
+        if self.current_message != new_message {
+            self.current_message = new_message;
+        }
+    }
+}
+
+
+impl UIComponent for Messagebar {
+   fn mark_redraw(&mut self,value:bool) {
+        self.needs_redraw = value
+   } 
+
+   fn needs_redraw(&self) -> bool {
+        self.needs_redraw
+   }
+
+   fn set_size(&mut self,size: Size) {}
+
+    fn draw(&self, position_row:usize) -> Result<(),Error> {
+        Terminal::print_row(position_row, &self.current_message)
+    }
 }

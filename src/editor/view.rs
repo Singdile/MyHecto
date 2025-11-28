@@ -2,7 +2,6 @@ mod buffer;
 mod line;
 
 use std::cmp::min;
-use std::ops::Sub;
 use super::{NAME,VERSION};
 use super::editorcommand::{Direction,EditorCommand};
 use super::terminal::{Size, Terminal};
@@ -10,7 +9,6 @@ use super::documentstatus::DocumentStatus;
 use crate::editor::terminal::Position;
 use crate::editor::view::buffer::Buffer;
 
-use unicode_segmentation::UnicodeSegmentation;
 use crate::editor::view::line::Line;
 
 #[derive(Copy, Clone,Default)]

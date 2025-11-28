@@ -5,6 +5,7 @@ mod statusbar;
 mod documentstatus;
 mod fileinfo;
 mod messagebar;
+mod uicomponent;
 
 use std::io::Error;
 use std::panic::{set_hook,take_hook};

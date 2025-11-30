@@ -3,44 +3,73 @@ use crate::editor::terminal::Size;
 use std::time::{Instant,Duration};
 use super::uicomponent::UIComponent;
 use super::Terminal;
+
+
+const DEFAULT_DURATION: Duration = Duration::new(5, 0); //message_bar 显示时间
+///用于Messagebar 内部，用于记录信息和时间点的数据结构
+struct Message {
+    text: String,
+    time: Instant,
+}
+
+impl Default for Message {
+    fn default() -> Self {
+        Self { 
+            text: String::new(), 
+            time: Instant::now(),
+        }
+    }
+}
+
+impl Message {
+    ///判断信息是否过期
+    fn is_expired(&self) -> bool {
+        Instant::now().duration_since(self.time) > DEFAULT_DURATION
+    }
+    
+}
+
+
 ///代表简单信息的结构，比如键入ctr+s 显示 save
-#[derive(Debug)]
+#[derive(Default)]
 pub struct Messagebar {
-    current_message: String,
-    needs_redraw: bool,
-    time_render: Instant, //自带一个计时点，并且该计时点只在更新内容的时候更新
+    current_message: Message,
+    needs_redraw: bool, //是否需要重新绘制
+    cleared_after_expiry: bool, //记录信息过期后是否清除
 }
 
 impl Messagebar {
     pub fn update_message(&mut self, new_message: String) {
-        if self.current_message != new_message {
-            self.current_message = new_message;
-            self.time_render = Instant::now(); //更新记录点
-            self.mark_redraw(true);
-        }
+        self.current_message = Message { 
+            text: new_message, 
+            time: Instant::now()
+        };
+        self.cleared_after_expiry = false;
+        self.set_needs_redraw(true);
     }
 }
 
 
 impl UIComponent for Messagebar {
-   fn mark_redraw(&mut self,value:bool) {
+    fn set_needs_redraw(&mut self,value:bool) {
         self.needs_redraw = value
-   } 
+    }
 
-   fn needs_redraw(&self) -> bool {
-        self.needs_redraw
-   }
+    fn needs_redraw(&self) -> bool {
+        //明确需要渲染的时候是必须要渲染显示的
+        //当没有明确要渲染的时候，判断信息是否过期; 若过期且未被清除，则需要重新渲染显示
+        (self.current_message.is_expired() && !self.cleared_after_expiry) || self.needs_redraw 
+    }
 
-   fn set_size(&mut self,size: Size) {
-        
+    fn set_size(&mut self,size: Size) {
+       
    }
 
 
    fn render(&mut self,position_row:usize) {
-        let time_last = Instant::now() - self.time_render;
         if self.needs_redraw() {
             match self.draw(position_row) {
-                Ok(()) => self.mark_redraw(false),
+                Ok(()) => self.set_needs_redraw(false),
                 Err(err) => {
                     #[cfg(debug_assertions)]
                     {
@@ -48,42 +77,22 @@ impl UIComponent for Messagebar {
                     }
                 }
             }
-        } else if time_last > Duration::new(5, 0) {
-            Terminal::print_row(position_row, "~");
-        }
+        }             
    }
 
-    fn draw(&self, position_row:usize) -> Result<(),Error> {
-        Terminal::print_row(position_row, &self.current_message)
-    }
-}
-
-
-impl Default for  Messagebar {
-    fn default() -> Self {
-        Self { 
-            current_message: String::default(), 
-            needs_redraw: false, 
-            time_render: Instant::now(), 
+    fn draw(&mut self, position_row:usize) -> Result<(),Error> {
+        //需要渲染，但是信息过期,需要将原来的信息清除
+        if self.current_message.is_expired() {
+            self.cleared_after_expiry = true;
         }
-    }
-}
+        
+        //打印的信息
+        let message = if self.current_message.is_expired() {
+            ""
+        } else {
+            &self.current_message.text
+        };
 
-#[cfg(test)]
-mod tsets {
-    use crate::editor::messagebar::Messagebar;
-    use std::{thread, time::Duration};
-
-
-    #[test]
-    fn test_time() {
-        let mut  mse = Messagebar::default();
-        let first = mse.time_render;
-        println!("time point:{:?}", first);
-        thread::sleep(Duration::new(5,0));
-        mse.update_message("hello".to_string()); 
-        println!("time point:{:?}",mse.time_render);
-        assert_eq!(true, mse.time_render - first <= Duration::new(6,0))
-
+        Terminal::print_row(position_row, message)
     }
 }

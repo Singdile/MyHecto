@@ -98,7 +98,7 @@ impl Editor {
         });
     }
 
-
+    ///主要运行逻辑
     pub fn run(&mut self){ 
         loop {
             self.refresh_screen();

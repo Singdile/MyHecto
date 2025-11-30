@@ -91,20 +91,20 @@ impl View {
     ///处理按键Enter，键入后将当前分为两行
     fn enter(&mut self) {
         self.buffer.tab(self.text_location);
-        self.mark_redraw(true);
+        self.set_needs_redraw(true);
     }
     ///处理按键Tab
     fn tab(&mut self) {
         //处理Tab为，插入\t
         self.insert_char('\t');
-        self.mark_redraw(true);
+        self.set_needs_redraw(true);
     }
 
     ///执行delete,删除光标后面的一位字符
     fn delete(&mut self) {
         //光标位置后面有一位
         self.buffer.delete(self.text_location);
-        self.mark_redraw(true);
+        self.set_needs_redraw(true);
     }
 
     ///执行backspace,删除光标前面的一个字符
@@ -113,7 +113,7 @@ impl View {
         self.move_left();
 
         self.delete();
-        self.mark_redraw(true);
+        self.set_needs_redraw(true);
     }
 
     ///插入字符
@@ -136,14 +136,14 @@ impl View {
         if grapheme_delta > 0 {//增添后光标向右移动1位，即插入字符之
             self.move_right();
         }
-        self.mark_redraw(true);
+        self.set_needs_redraw(true);
     }
 
     ///insert_newline
     fn insert_newline(&mut self) {
         self.buffer.insert_newline(self.text_location);
         self.move_text_location(&Direction::Right);
-        self.mark_redraw(true);
+        self.set_needs_redraw(true);
     }
 
     ///移动想要显示的文本的绝对位置Location,文本中的第几行的第几个grapheme
@@ -255,7 +255,7 @@ impl View {
         };
 
         if offset_changed {
-            self.mark_redraw(true);
+            self.set_needs_redraw(true);
         }
    }
 
@@ -273,7 +273,7 @@ impl View {
         };
         
         if offset_changed {
-            self.mark_redraw(true);
+            self.set_needs_redraw(true);
         }
    }
 
@@ -301,14 +301,14 @@ impl View {
     pub fn load(&mut self, path: &str) {
         if let Ok(buffer) = Buffer::load(path) {
             self.buffer = buffer;
-            self.mark_redraw(true);
+            self.set_needs_redraw(true);
         }
     }
 
 }
 
 impl UIComponent for View {
-    fn mark_redraw(&mut self,value:bool) {
+    fn set_needs_redraw(&mut self,value:bool) {
         self.need_redraw = value
     }
 
@@ -320,7 +320,7 @@ impl UIComponent for View {
         self.size = size;
         self.scroll_text_location_into_view(); //变更size的时候，保证的当前行能被正常显示
     }
-    fn draw(&self, position_row:usize) -> Result<(),Error> {
+    fn draw(&mut self, position_row:usize) -> Result<(),Error> {
         //position_row 表示希望显示的文本的第几行,这里总是从0开始，为了保证接口的一致
         //scroll_offset 表示可视的第一行
         let Size {columns,rows} = self.size;

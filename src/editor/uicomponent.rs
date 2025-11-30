@@ -3,7 +3,7 @@ use super::terminal::Size;
 
 pub trait UIComponent {
     ///标记是否需要渲染
-    fn mark_redraw(&mut self,value:bool);
+    fn set_needs_redraw(&mut self,value:bool);
 
     ///查看是否需要渲染
     fn needs_redraw(&self) -> bool;
@@ -11,7 +11,7 @@ pub trait UIComponent {
     ///当终端size更新的时候，同步更新组件的显示位置以及是否可见等视觉参数
     fn resize(&mut self, size: Size) {
         self.set_size(size);
-        self.mark_redraw(true);
+        self.set_needs_redraw(true);
     }
 
     ///设置UI组件的显示size
@@ -21,7 +21,7 @@ pub trait UIComponent {
     fn render(&mut self,position_row:usize) {
         if self.needs_redraw() {
             match self.draw(position_row) {
-                Ok(()) => self.mark_redraw(false),
+                Ok(()) => self.set_needs_redraw(false),
                 Err(err) => {
                     #[cfg(debug_assertions)]
                     {
@@ -33,5 +33,5 @@ pub trait UIComponent {
     }
 
     ///实际执行渲染的工具函数
-    fn draw(&self, position_row:usize) -> Result<(),Error>; 
+    fn draw(&mut self, position_row:usize) -> Result<(),Error>; 
 }

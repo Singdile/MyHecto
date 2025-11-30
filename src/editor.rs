@@ -9,7 +9,7 @@ mod uicomponent;
 
 use std::io::Error;
 use std::panic::{set_hook,take_hook};
-use std::env;
+use std::{default, env};
 use crossterm::event::{
     Event,
     KeyEvent, KeyEventKind, read,
@@ -17,12 +17,15 @@ use crossterm::event::{
 use terminal::{Terminal};
 use view::View;
 
-
+use uicomponent::UIComponent;
 use crate::editor::editorcommand::EditorCommand;
+use crate::editor::messagebar::Messagebar;
 use crate::editor::statusbar::StatusBar;
 use documentstatus::DocumentStatus;
 use crate::editor::terminal::Size;
 
+use std::time::Duration;
+use std::time::Instant;
 const VERSION: &str = env!("CARGO_PKG_VERSION");//版本号
 const NAME: &str = env!("CARGO_PKG_NAME");//文件名
 ///save the caret position
@@ -34,11 +37,12 @@ struct Location {
 
 
 
-
 pub struct Editor {
     should_quit: bool,
     view: View,
     status_bar: StatusBar,
+    message_bar: Messagebar,
+    terminal_size: Size, 
     title: String,
 }
 
@@ -54,30 +58,51 @@ impl Editor {
 
         Terminal::initialize()?;//打开一个副屏幕
 
-        //下面初始化Editor的元素
-        let mut editor = Self {
-            should_quit: false,
-            view: View::new(2), //简单初始化为空
-            status_bar: StatusBar::new(2),//这里只是简单初始化为空,确定了状态栏的位置信息
-            title: String::new(),
-        };
+        let mut editor = Editor::default();
+        let size = Terminal::size().unwrap_or_default();
 
-        //加载文件内容，更新View信息
+        //更新terminal_sizey 以及 message_bar 和 status_bar 的位置信息
+        editor.resize(size); 
+
+        //更新view
         let args: Vec<String> = env::args().collect();
         if let Some(file_name) = args.get(1) {
-            editor.view.load(&file_name); //加载文件内容
+            editor.view.load(&file_name);
         }
 
+        //更新message.bar的文字信息
+        editor.message_bar.update_message("HELP: Ctrl-s = save | Ctrl-c = quit".to_string()); 
+        
         //更新状态栏的文字信息
         editor.refresh_statusbar();
         
         Ok(editor)
     }
 
+    ///更新editor的terminal_size 以及 成员中需要的terminal_size
+    fn resize(&mut self, size: Size) {
+        self.terminal_size = size;
+        self.view.resize( Size { 
+            columns: size.columns,
+            rows: size.rows.saturating_sub(2) //预留两行空间
+        });
+
+        self.message_bar.resize( Size {
+            columns: size.columns,
+            rows: 1, 
+        });
+
+        self.status_bar.resize( Size { 
+            columns: size.columns,
+            rows: 1, 
+        });
+    }
+
 
     pub fn run(&mut self){ 
         loop {
             self.refresh_screen();
+
 
             if self.should_quit {
                 // let _ = Terminal::terminate();//离开副屏幕
@@ -131,11 +156,10 @@ impl Editor {
                     self.should_quit = true;
                 } else {
                     if let EditorCommand::Resize(size) = command {
-                        //当终端的size变化的时候，更新状态栏的位置参数
-                        self.status_bar.resize(size);
+                        self.resize(size); //对于resize事件而言，会影响到view,message_bar,status_bar的显示问题,这里统一处理了
+                    } else {
+                        self.view.handle_command(command);
                     }
-                    self.view.handle_command(command);
-
                 }
             },
             Err(err) => {}
@@ -146,9 +170,26 @@ impl Editor {
 
 
     fn refresh_screen(&mut self) {//刷新屏幕，这里忽略了对error的处理，即使发生也只是光标是否可见的问题
+        if self.terminal_size.rows == 0 || self.terminal_size.columns == 0 {
+            return;
+        }
+
         let _ = Terminal::hide_caret();
-        self.view.render();//对整个屏幕渲染
-        self.status_bar.render();//渲染状态栏
+
+        //渲染message_bar
+        self.message_bar.render(self.terminal_size.rows.saturating_sub(1)); //在倒数第一行显示
+
+        //渲染message_bar
+       if self.terminal_size.rows > 1 {
+            self.status_bar.render(self.terminal_size.rows.saturating_sub(2));
+       } 
+
+       //渲染View
+       if self.terminal_size.rows > 2 {
+            self.view.render(0);
+       } 
+
+       
         let _ = Terminal::move_caret_to(self.view.caret_position());
 
         let _ = Terminal::show_caret();
@@ -173,3 +214,15 @@ impl Editor {
 
 }
 
+impl Default for Editor {
+    fn default() -> Self {
+        Self { 
+            should_quit: false,
+            view: View::default(),
+            status_bar: StatusBar::default(), 
+            message_bar: Messagebar::default(), 
+            terminal_size: Size::default(), 
+            title: String::default(), 
+        }
+    }
+}

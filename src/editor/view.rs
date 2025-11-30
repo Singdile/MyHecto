@@ -1,11 +1,12 @@
 mod buffer;
 mod line;
-
+use std::io::Error;
 use std::cmp::min;
 use super::{NAME,VERSION};
 use super::editorcommand::{Direction,EditorCommand};
 use super::terminal::{Size, Terminal};
 use super::documentstatus::DocumentStatus;
+use super::uicomponent::UIComponent;
 use crate::editor::terminal::Position;
 use crate::editor::view::buffer::Buffer;
 
@@ -22,64 +23,17 @@ pub struct Location {
 /// 很多时候，文本的大小不能在一定尺寸的可视终端窗口大小中完全看完，当光标不断变化，直到光标超出当前可视窗口的渲染的范围的时候；则需要改变渲染的偏移量，让光标想要查看的位置重新渲染。
 /// 举例 scroll_offset = 0 ; size = (2,2) ; 起始光标位置 (0,0)。 此时光标位置想要查看的是文本中绝对位置的第0行，恰好处理可视范围文本的(0~1)之内。
 /// 光标移动到(2,0),想要查看第2行，超出了渲染的范围(0~1); 更改渲染的偏移量scroll_offset = 1,可视文本范围(1~2)
+#[derive(Default)]
 pub struct View {
     buffer: Buffer,
     need_redraw: bool,
     size: Size,
     text_location: Location,//文本中的第几行的第几个 grapheme
     scroll_offset: Position,//物理屏幕上的行列
-    margin_bottom: usize, //记录View预留给状态栏空间大小
 }
 
 
 impl View {
-    ///初始化view,margin是给底部的状态留下的空间
-    pub fn new(margin_bottom:usize) -> View{
-        let terminal_size = Terminal::size().unwrap_or_default();
-        Self {
-            buffer: Buffer::default(),
-            need_redraw: true,
-            size: Size {
-                columns:terminal_size.columns,
-                rows: terminal_size.rows.saturating_sub(margin_bottom),//margin_bottom用于留下一定空间展示statusbar
-            },
-            text_location:Location::default(),
-            scroll_offset:Position::default(),
-            margin_bottom,
-        }
-    }
-
-
-    /// 负责打印输出内容，以及空行
-    pub fn render(&mut self) {
-        if !self.need_redraw {
-            return
-        }
-
-
-        let Size {columns,rows} = self.size;
-        if columns == 0 || rows == 0 {
-            return
-        }
-
-        let vertical_center = columns/3;
-        let top = self.scroll_offset.row; //可以显示的文本起始行
-
-        for current_row in 0..rows {
-            if let Some(line) = self.buffer.lines.get(current_row.saturating_add(top)) {
-                let left = self.scroll_offset.column; //可以显示的文本起始列
-                let right = self.scroll_offset.column.saturating_add(columns);//可以显示的文本终止列的下一列
-                Self::render_line(current_row, &line.get_visible_graheme(left..right)); //获取可视范围的文本,渲染
-            } else if current_row == vertical_center && self.buffer.is_empty() {//缓冲区没有内容，需要输出欢迎信息
-                Self::render_line(current_row, &Self::build_welcome_message(columns));
-            } else {//输出空行
-                Self::render_line(current_row, "~");
-            }
-        }
-        
-        self.need_redraw = false;//渲染之后，将need_redraw重置
-    }
-
     ///返回文本信息
     pub fn get_status(&self) -> DocumentStatus {
         DocumentStatus { 
@@ -90,22 +44,11 @@ impl View {
         }
     }
 
-    ///窗口大小变化的时候，需要重新绘制
-    pub fn resize(&mut self,to: Size) {
-        self.size = Size {
-            columns: to.columns,
-            rows: to.rows.saturating_sub(self.margin_bottom),
-        };
-
-        self.scroll_text_location_into_view();
-        self.need_redraw = true;
-    }
 
 
     ///渲染一行
-    pub fn render_line(row: usize, line_text: &str) {
-        let result = Terminal::print_row(row, line_text);
-        debug_assert!(result.is_ok(),"Failed to render line");//这里对渲染进行了错误处理，上层render不用处理这里的错误
+    pub fn render_line(row: usize, line_text: &str) -> Result<(),Error> {
+        Terminal::print_row(row, line_text)
     }
 
 
@@ -130,8 +73,7 @@ impl View {
     pub fn handle_command(&mut self,command: EditorCommand) {
         match command {
             EditorCommand::Move(direction) => self.move_text_location(&direction),
-            EditorCommand::Resize(size) => self.resize(size),
-            EditorCommand::Quit => {},
+            EditorCommand::Resize(_) | EditorCommand::Quit => {}, 
             EditorCommand::Insert(ch) => self.insert_char(ch),
             EditorCommand::Delete => { self.delete()},
             EditorCommand::Backspace => {self.backspace()},
@@ -149,20 +91,20 @@ impl View {
     ///处理按键Enter，键入后将当前分为两行
     fn enter(&mut self) {
         self.buffer.tab(self.text_location);
-        self.need_redraw = true;
+        self.mark_redraw(true);
     }
     ///处理按键Tab
     fn tab(&mut self) {
         //处理Tab为，插入\t
         self.insert_char('\t');
-        self.need_redraw = true;
+        self.mark_redraw(true);
     }
 
     ///执行delete,删除光标后面的一位字符
     fn delete(&mut self) {
         //光标位置后面有一位
         self.buffer.delete(self.text_location);
-        self.need_redraw = true;
+        self.mark_redraw(true);
     }
 
     ///执行backspace,删除光标前面的一个字符
@@ -171,7 +113,7 @@ impl View {
         self.move_left();
 
         self.delete();
-        self.need_redraw = true;
+        self.mark_redraw(true);
     }
 
     ///插入字符
@@ -194,8 +136,16 @@ impl View {
         if grapheme_delta > 0 {//增添后光标向右移动1位，即插入字符之
             self.move_right();
         }
-        self.need_redraw = true;
+        self.mark_redraw(true);
     }
+
+    ///insert_newline
+    fn insert_newline(&mut self) {
+        self.buffer.insert_newline(self.text_location);
+        self.move_text_location(&Direction::Right);
+        self.mark_redraw(true);
+    }
+
     ///移动想要显示的文本的绝对位置Location,文本中的第几行的第几个grapheme
    pub fn move_text_location(&mut self,direction:&Direction) {//处理移动指令，修改想要显示的文本的绝对位置
         match direction {
@@ -304,7 +254,9 @@ impl View {
             false
         };
 
-        self.need_redraw = self.need_redraw || offset_changed;
+        if offset_changed {
+            self.mark_redraw(true);
+        }
    }
 
    ///修改可视范围，使得光标所在列在屏幕的列可视范围内
@@ -319,7 +271,10 @@ impl View {
         } else {
             false
         };
-        self.need_redraw = self.need_redraw || offset_changed;
+        
+        if offset_changed {
+            self.mark_redraw(true);
+        }
    }
 
    ///修改可视范围，使得光标所在行、列在屏幕的可视范围
@@ -346,22 +301,49 @@ impl View {
     pub fn load(&mut self, path: &str) {
         if let Ok(buffer) = Buffer::load(path) {
             self.buffer = buffer;
-            self.need_redraw = true;
+            self.mark_redraw(true);
         }
     }
 
 }
 
+impl UIComponent for View {
+    fn mark_redraw(&mut self,value:bool) {
+        self.need_redraw = value
+    }
 
-impl Default for View {
-    fn default() -> Self {
-        View {
-            buffer: Buffer::default(),
-            need_redraw: true,
-            size: Size::default(),
-            text_location: Location::default(),
-            scroll_offset: Position::default(),
-            margin_bottom: 0,
+    fn needs_redraw(&self) -> bool {
+        self.need_redraw
+    }
+
+    fn set_size(&mut self,size: Size) {
+        self.size = size;
+        self.scroll_text_location_into_view(); //变更size的时候，保证的当前行能被正常显示
+    }
+    fn draw(&self, position_row:usize) -> Result<(),Error> {
+        //position_row 表示希望显示的文本的第几行,这里总是从0开始，为了保证接口的一致
+        //scroll_offset 表示可视的第一行
+        let Size {columns,rows} = self.size;
+        let end_row = position_row.saturating_add(rows); //保证position_row ~ end_row 之间是一个页面的高度
+
+        let vertical_center = rows/3;
+
+        //显示可以显示的行
+        for current_row in position_row..end_row {
+            let line_idx = current_row.saturating_sub(position_row).saturating_add(self.scroll_offset.row);
+
+            if let Some(line) = self.buffer.lines.get(line_idx) {
+                let left = self.scroll_offset.column; //可以显示的文本起始列
+                let right = self.scroll_offset.column.saturating_add(columns);//可以显示的文本终止列的下一列
+                Self::render_line(current_row.saturating_sub(position_row), &line.get_visible_graheme(left..right)); //获取可视范围的文本,渲染
+            } else if current_row == vertical_center && self.buffer.is_empty() {//缓冲区没有内容，需要输出欢迎信息
+                Self::render_line(current_row.saturating_sub(position_row), &Self::build_welcome_message(columns));
+            } else {//输出空行
+                Self::render_line(current_row.saturating_sub(position_row), "~");
+            }
         }
+
+        Ok(())
+                 
     }
 }

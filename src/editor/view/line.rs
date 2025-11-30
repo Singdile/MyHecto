@@ -28,6 +28,7 @@ struct TextFragment {
     replacement: Option<char>,//处理不可见的字符，如非打印的控制字符\r\n
 }
 ///数据结构，保存的是一行的grapheme数组
+#[derive(Default)]
 pub struct Line {
     fragments: Vec<TextFragment>,
 }
@@ -245,5 +246,17 @@ impl fmt::Display for Line  {
             .collect();
 
         write!(f, "{result}")
+    }
+}
+
+#[cfg(test)]
+
+mod test {
+    use crate::editor::view::line;
+
+    #[test]
+    fn print_default() {
+        let line = line::Line::default();
+        print!("{line:}"); 
     }
 }

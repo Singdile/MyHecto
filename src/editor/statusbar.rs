@@ -7,6 +7,7 @@ use super::{
 };
 
 ///代表状态栏的信息的结构体
+#[derive(Default)]
 pub struct StatusBar {
     current_status: DocumentStatus, //记录文件当前状态即状态栏的显示信息
     needs_redraw:bool,

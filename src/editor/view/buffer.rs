@@ -58,6 +58,19 @@ impl Buffer {
 
     }
 
+    ///插入新的一行,若插入位置在最后一行，则直接加入空白行
+    /// 若插入位置已经有信息，则将该行分成两行，并将信息插入第二行的末尾
+    pub fn insert_newline(&mut self,at: Location) {
+        if at.line_index == self.height() {
+            self.lines.push(Line::default());
+            self.dirty = true;
+        } else if let Some(line) = self.lines.get_mut(at.line_index) {
+            let new = line.split_off(at.grapheme_index);
+            self.lines.insert(at.line_index.saturating_add(1), new);
+            self.dirty = true;
+        }
+    }
+
     ///delete,删除光标后面的一位字符
     pub fn delete(&mut self, at: Location) {
         if let Some(line) = self.lines.get(at.line_index) {

@@ -33,12 +33,6 @@ impl Position {
     }
 }
 
-/// 不同平台上的usize大小不同
-/// 在 `usize < 16`的平台上,`u16::MAX`可能超出usize的范围
-/// 解决方法:返回的尺寸大小限制在 `usize::MAX` 和 `u16::MAX`中较小的值的范围内
-impl Terminal {
-
-}
 
 impl Terminal {
     pub fn terminate() -> Result<(),std::io::Error> {

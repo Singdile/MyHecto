@@ -3,7 +3,7 @@ use crossterm::event::{
 };
 
 
-use std::convert::TryFrom;
+use std::{any::Any, convert::TryFrom};
 
 use super::terminal::Size;
 ///移动指令枚举
@@ -115,8 +115,26 @@ pub enum Command {
 ///事件不仅涉及按键，还有屏幕尺寸的更改，所以这里的dy是Event
 impl TryFrom<Event> for Command {
    type Error = String; 
-   //todo
    fn try_from(value: Event) -> Result<Self, Self::Error> {
-       
+
+    //map： maps a Result<T,F> to Result<P,F> ; map_err: maps a Result<T,F> to Result<T,P>
+    //or_else: only calls when err existes,or return OK
+        match value {
+            Event::Key(key_event) => {
+                Edit::try_from(key_event)
+                    .map(Command::Edit)
+                    .or_else(|_| Move::try_from(key_event).map(Command::Move))
+                    .or_else(|_| System::try_from(key_event).map(Command::System))
+                    .map_err(|_errr| format!("Event not surpported: {key_event:?}"))
+            },
+            Event::Resize(columns,rows ) => {
+                Ok( 
+                    Self::System(
+                        System::Resize( Size { columns: columns as usize, rows: rows as usize })
+                    )
+                )
+            },
+            _ => { Err(format!("Event not surpported: {value:?}"))},
+        }       
    } 
 }

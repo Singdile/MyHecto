@@ -7,6 +7,7 @@ use super::editorcommand::{Direction,EditorCommand};
 use super::terminal::{Size, Terminal};
 use super::documentstatus::DocumentStatus;
 use super::uicomponent::UIComponent;
+use crate::editor::command::{self, Edit};
 use crate::editor::terminal::Position;
 use crate::editor::view::buffer::Buffer;
 
@@ -83,6 +84,15 @@ impl View {
         }
     }
 
+    ///处理编辑事件,insert_char,insert_newline,delete,deletebackward
+    pub fn handle_edit_command(&mut self, command: Edit) {
+        match command {
+           Edit::Insert(ch) => self.insert_char(ch),
+           Edit::InsertNewline => self.insert_newline(),
+           Edit::Delete => self.delete(),
+           Edit::DeleteBackward => self.backspace(),
+        }
+    }
     /// 处理按键ctr+s
     fn save(&mut self) {
         let _ = self.buffer.save();

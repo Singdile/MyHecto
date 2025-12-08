@@ -3,11 +3,10 @@ mod line;
 use std::io::Error;
 use std::cmp::min;
 use super::{NAME,VERSION};
-use super::editorcommand::{Direction,EditorCommand};
 use super::terminal::{Size, Terminal};
 use super::documentstatus::DocumentStatus;
 use super::uicomponent::UIComponent;
-use crate::editor::command::{self, Edit};
+use super::command::{Edit,Move};
 use crate::editor::terminal::Position;
 use crate::editor::view::buffer::Buffer;
 
@@ -70,32 +69,65 @@ impl View {
         welcome_message.truncate(columns);
         welcome_message
     }
-    ///处理键入事件
-    pub fn handle_command(&mut self,command: EditorCommand) {
+    
+    ///处理move 指令
+    // Pageup,
+    // PageDown,
+    // StartofLine, //Home
+    // EndofLine, //End
+    // Up,
+    // Left,
+    // Right,
+    // Down,
+    pub fn handle_move_command(&mut self, command: Move) {
         match command {
-            EditorCommand::Move(direction) => self.move_text_location(&direction),
-            EditorCommand::Resize(_) | EditorCommand::Quit => {}, 
-            EditorCommand::Insert(ch) => self.insert_char(ch),
-            EditorCommand::Delete => { self.delete()},
-            EditorCommand::Backspace => {self.backspace()},
-            EditorCommand::Tab => { self.tab()},
-            EditorCommand::Enter => { self.enter()},
-            EditorCommand::Save => { self.save()}
+            Move::Up => {
+                self.move_up(1);
+            },
+            Move::Down => {
+                self.move_down(1);
+            },
+            Move::Left => {
+                self.move_left();
+            },
+            Move::Right => {
+                self.move_right();
+            },
+            Move::Pageup => {
+                //向上翻滚一页的内容,减一是保证最后一行的内容是翻滚之前的，对用户更加友好
+               self.move_up(self.size.rows.saturating_sub(1));
+            },
+            Move::PageDown => {
+                //向下翻滚一页的内容,减一是保证最后一行的内容是翻滚之前的，对用户更加友好
+                self.move_down(self.size.rows.saturating_sub(1));
+            },
+            Move::StartofLine => {
+                self.move_to_start_of_line();
+            },
+            Move::EndofLine => {
+                self.move_to_end_of_line();
+            }
         }
+        self.scroll_text_location_into_view();//将当前文本位置移动到可见的范围
     }
 
-    ///处理编辑事件,insert_char,insert_newline,delete,deletebackward
+    ///处理edit指令
+//    Insert(char),
+//    InsertNewline,
+//    Delete,
+//    DeleteBackward, //Backsapce
     pub fn handle_edit_command(&mut self, command: Edit) {
         match command {
-           Edit::Insert(ch) => self.insert_char(ch),
+           Edit::Insert(ch) => self.insert_char(ch), 
            Edit::InsertNewline => self.insert_newline(),
            Edit::Delete => self.delete(),
-           Edit::DeleteBackward => self.backspace(),
-        }
+           Edit::DeleteBackward => self.delete_backward(),
+        }     
     }
+
     /// 处理按键ctr+s
-    fn save(&mut self) {
-        let _ = self.buffer.save();
+    pub fn save(&mut self) -> Result<(),Error> {
+        self.buffer.save()
     }
 
     ///处理按键Enter，键入后将当前分为两行
@@ -118,10 +150,9 @@ impl View {
     }
 
     ///执行backspace,删除光标前面的一个字符
-    fn backspace(&mut self) {
+    fn delete_backward(&mut self) {
         //光标向前移动一位
-        self.move_left();
-
+        self.handle_move_command(Move::Left);
         self.delete();
         self.set_needs_redraw(true);
     }
@@ -144,51 +175,18 @@ impl View {
 
         let grapheme_delta = new_len.saturating_sub(old_len);
         if grapheme_delta > 0 {//增添后光标向右移动1位，即插入字符之
-            self.move_right();
+            self.handle_move_command(Move::Right);
         }
         self.set_needs_redraw(true);
     }
 
-    ///insert_newline
+    ///insert_newline,将一行切割为两行，光标向右移动一位，位于第一行的末尾
     fn insert_newline(&mut self) {
-        self.buffer.insert_newline(self.text_location);
-        self.move_text_location(&Direction::Right);
+        self.buffer.insert_newline(self.text_location); //将一行切割为两行
+        self.handle_move_command(Move::Right);//光标向右移动1位，位于第一行的末尾
         self.set_needs_redraw(true);
     }
 
-    ///移动想要显示的文本的绝对位置Location,文本中的第几行的第几个grapheme
-   pub fn move_text_location(&mut self,direction:&Direction) {//处理移动指令，修改想要显示的文本的绝对位置
-        match direction {
-            Direction::Up => {
-                self.move_up(1);
-            },
-            Direction::Down => {
-                self.move_down(1);
-            },
-            Direction::Left => {
-                self.move_left();
-            },
-            Direction::Right => {
-                self.move_right();
-            },
-            Direction::Pageup => {
-                //向上翻滚一页的内容,减一是保证最后一行的内容是翻滚之前的，对用户更加友好
-               self.move_up(self.size.rows.saturating_sub(1));
-            },
-            Direction::PageDown => {
-                //向下翻滚一页的内容,减一是保证最后一行的内容是翻滚之前的，对用户更加友好
-                self.move_down(self.size.rows.saturating_sub(1));
-            },
-            Direction::Home => {
-                self.move_to_start_of_line();
-            },
-            Direction::End => {
-                self.move_to_end_of_line();
-            }
-        }
-        self.scroll_text_location_into_view();
-
-   }
 
     ///移动Location,向上一行
    fn move_up(&mut self,step: usize) {
@@ -308,11 +306,11 @@ impl View {
         self.text_locaton_to_position().saturating_sub(self.scroll_offset)
     }
     ///将对应路径文件，加载到buffer
-    pub fn load(&mut self, path: &str) {
-        if let Ok(buffer) = Buffer::load(path) {
-            self.buffer = buffer;
-            self.set_needs_redraw(true);
-        }
+    pub fn load(&mut self, path: &str) -> Result<(),Error> {
+        let buffer = Buffer::load(path)?;
+        self.buffer = buffer;
+        self.set_needs_redraw(true);
+        Ok(())
     }
 
 }

@@ -1,6 +1,5 @@
 This is a rust-based editor.
 
-
 # Testing regular text
 Hello, world! This is a test.
 

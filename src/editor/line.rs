@@ -1,6 +1,5 @@
 
-use std::{clone, fmt::{self, write}, ops::Range, path::is_separator};
-use crossterm::cursor::RestorePosition;
+use std::{fmt, ops::Range};
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
@@ -170,6 +169,11 @@ impl Line {
         width
     }
 
+    ///返回line的可视长度
+    pub fn width(&self) -> usize {
+       self.width_until(self.grapheme_count()) 
+    }
+
     ///translate &str to Vec<TextFragment>
     // fn str_to_fragments(line_str: &str) -> Vec<TextFragment> {
     //     line_str
@@ -219,6 +223,11 @@ impl Line {
 
     }
 
+    ///删除最后一个字符
+    pub fn delete_last(&mut self) {
+        self.delete(self.grapheme_count().saturating_sub(1));
+    }
+
     ///split_off(usize)，切割当前行，返回右端部分
     pub fn split_off(&mut self,at: usize) -> Self {
         let newLine = self.fragments.split_off(at);
@@ -227,12 +236,18 @@ impl Line {
         }
     }
 
-    ///在Line后面追加内容
+    ///在Line后面追加另一个Line的内容
     pub fn append(&mut self,other:&Self) {
         let mut concat = self.to_string(); //当前Line的字符内容
         concat.push_str(&other.to_string()); //合并另一个Line的字符内容
         *self = Line::from(&concat);//利用concat的内容，生成新的Line，并让原先的指针指向这个Line
     }
+
+    ///在Line后面追加字符
+    pub fn append_char(&mut self,ch:char) {
+        self.insert_char(ch, self.grapheme_count());
+    }
+    
 } 
 
 
@@ -246,17 +261,5 @@ impl fmt::Display for Line  {
             .collect();
 
         write!(f, "{result}")
-    }
-}
-
-#[cfg(test)]
-
-mod test {
-    use crate::editor::view::line;
-
-    #[test]
-    fn print_default() {
-        let line = line::Line::default();
-        print!("{line:}"); 
     }
 }

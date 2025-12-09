@@ -2,10 +2,11 @@ mod terminal;
 mod view;
 mod statusbar;
 mod documentstatus;
-mod fileinfo;
 mod messagebar;
 mod uicomponent;
 mod command;
+mod commandbar;
+mod line;
 
 use std::io::Error;
 use std::panic::{set_hook,take_hook};

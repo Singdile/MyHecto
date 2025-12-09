@@ -1,5 +1,5 @@
 mod buffer;
-mod line;
+mod fileinfo;
 use std::io::Error;
 use std::cmp::min;
 use super::{NAME,VERSION};
@@ -9,8 +9,7 @@ use super::uicomponent::UIComponent;
 use super::command::{Edit,Move};
 use crate::editor::terminal::Position;
 use crate::editor::view::buffer::Buffer;
-
-use crate::editor::view::line::Line;
+use crate::editor::line::Line;
 
 #[derive(Copy, Clone,Default)]
 pub struct Location {

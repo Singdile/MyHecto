@@ -3,9 +3,9 @@ use std::fs::{read_to_string,File};
 use std::io::Error;
 use std::io::Write;
 use super::Location;
-use super::line::Line;
+use crate::editor::line::Line;
 
-use crate::editor::fileinfo::FileInfo;
+use crate::editor::view::fileinfo::FileInfo;
 
 #[derive(Default)]
 pub struct Buffer {
@@ -123,16 +123,44 @@ impl Buffer {
     }
 
 
-    ///处理指令ctr+buffer
-    pub fn save(&mut self) -> Result<(),Error> {
-        if let Some(path) = &self.file_info.path {
-            let mut file = File::create(path)?;//以write的方式打开文件，如果文件不存在则创建，如果存在则会覆盖
+    // ///处理指令ctr+buffer
+    // pub fn save(&mut self) -> Result<(),Error> {
+    //     if let Some(path) = self.file_info.get_path() {
+    //         let mut file = File::create(path)?;//以write的方式打开文件，如果文件不存在则创建，如果存在则会覆盖
 
+    //         for line in &self.lines {
+    //             writeln!(file,"{line}")?;
+    //         }
+    //         self.dirty = false;
+    //     }       
+    //     Ok(())
+    // }
+
+    ///将信息保存到指定的文件FileInfo
+    pub fn save_to_file(&self, file_info:&FileInfo) -> Result<(),Error>{
+        if let Some(file_path) = &file_info.get_path(){
+            let mut file = File::create(file_path)?;
             for line in &self.lines {
                 writeln!(file,"{line}")?;
             }
-            self.dirty = false;
-        }       
+        }
+
+        Ok(())
+    }
+
+    ///将信息保存到指定的文件地址,并更新buffer指向的文件
+    pub fn save_as(&mut self, file_name: &str) -> Result<(),Error> {
+        let file_info = FileInfo::from(file_name); 
+        self.save_to_file(&file_info)?;
+        self.file_info = file_info;
+        self.dirty = false;
+        Ok(()) 
+    }
+
+    ///将信息保存到当前的文件
+    pub fn save(&mut self) -> Result<(),Error> {
+        self.save_to_file(&self.file_info)?;
+        self.dirty = false;
         Ok(())
     }
 }

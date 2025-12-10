@@ -7,7 +7,10 @@ mod uicomponent;
 mod command;
 mod commandbar;
 mod line;
+mod position;
+mod size;
 
+use std::f32::DIGITS;
 use std::io::Error;
 use std::panic::{set_hook,take_hook};
 use std::{env};
@@ -19,17 +22,20 @@ use terminal::{Terminal};
 use view::View;
 
 use uicomponent::UIComponent;
-use crate::editor::statusbar::StatusBar;
+use statusbar::StatusBar;
+use commandbar::CommandBar;
+
+use crate::editor::position::Position;
 
 //self 表示当前的模块，editor;要使用下面的子模块，通常可以省略，为了路径清晰，可以添加上
 use self::{
     command::{
         Command::{self,Edit,Move,System}, //use 简化路径，这里可以直接使用Command::Edit，Command::Move,Command::System，这几个变体
-        System::{Quit,Resize,Save} //use 简化路径，这里可以直接使用 System 的几个变体
+        System::{Quit,Resize,Save,Dismiss} //use 简化路径，这里可以直接使用 System 的几个变体
     },
     messagebar::Messagebar,
-    terminal::Size,
 };
+use size::Size;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");//版本号
 const NAME: &str = env!("CARGO_PKG_NAME");//文件名
@@ -42,6 +48,7 @@ pub struct Editor {
     view: View,
     status_bar: StatusBar,
     message_bar: Messagebar,
+    command_bar: Option<CommandBar>, //用于保存文件时候的指令显示和信息输入,但是不是常常出现，所以这里是Option
     terminal_size: Size, 
     title: String,
     quit_times: u8,
@@ -100,6 +107,13 @@ impl Editor {
             columns: size.columns,
             rows: 1, 
         });
+
+        if let Some(command_bar) = &mut self.command_bar {
+            command_bar.resize( Size {
+                columns: size.columns,
+                rows: 1,
+            });
+        } 
     }
 
     ///主要运行逻辑
@@ -166,17 +180,72 @@ impl Editor {
     fn process_command(&mut self,command: Command) {
         //首先匹配 Quit,Resize
         match command {
-            System(Quit) => self.handle_quit(),
+            System(Quit) => { //当commandbar没有指令的时候，才进行正常的推出判断
+                if self.command_bar.is_none() {
+                    self.handle_quit();
+                }
+            }, 
             System(Resize(size)) => self.resize(size),
             _ => self.reset_quit_times(),
         }
 
         match command {
            System(Quit | Resize(_)) => {}, //上面已经处理好了 
-           System(Save) => self.handle_save(),
-           Edit(edit_command) => self.view.handle_edit_command(edit_command), 
-           Move(move_command) => self.view.handle_move_command(move_command),
+           System(Save) => {//当commandbar没有指令的时候，才进行正常的推出判断
+                if self.command_bar.is_none() {
+                    self.handle_save();
+                }
+           },
+           System(Dismiss) => {
+                if self.command_bar.is_some() {
+                    self.dismiss_prompt();
+                    self.message_bar.update_message("save aborted");
+                }
+           },
+           Edit(edit_command) => {
+                if let Some(command_bar) = &mut self.command_bar {
+                    //command_bar存在，这里的操作是对command_bar的键入
+                    if matches!(edit_command,command::Edit::InsertNewline) {// 键入enter
+                        let file_name = command_bar.value();
+                        self.dismiss_prompt();
+                        self.save(Some(&file_name));
+                    } else {
+                        command_bar.handle_edit_command(edit_command);
+                    }
+                } else {
+                    self.view.handle_edit_command(edit_command); //command_bar不存在，正常键入view
+                }
+           },
+           Move(move_command) => {
+                if self.command_bar.is_none() { //只处理view的光标移动
+                    self.view.handle_move_command(move_command);
+                }
+           },
+
         }
+    }
+
+    ///创建一个command_bar,并设置prompt,确定其显示位置，设置为需要渲染
+    fn show_prompt(&mut self) {
+        let mut command_bar = CommandBar::default();
+        command_bar.set_prompt("Save as:");
+
+        //确定显示位置
+        command_bar.resize( Size {
+            columns: self.terminal_size.columns,
+            rows: 1,
+        });
+
+        //设置为需要渲染command_bar
+        command_bar.set_needs_redraw(true);
+
+        self.command_bar = Some(command_bar)
+    }
+
+    ///重置Option<command_bar> 为None,保证message_bar 能够渲染
+    fn dismiss_prompt(&mut self) {
+        self.command_bar =  None;
+        self.message_bar.set_needs_redraw(true);
     }
 
     ///当文件没有被修改的时候，可以直接退出;当quit_times == 3 的时候可以直接退出;其余，增加quit_times 的次数
@@ -190,13 +259,27 @@ impl Editor {
 
     ///处理保存指令
     fn handle_save(&mut self) {
-        if self.view.save().is_ok() {
-            self.message_bar.update_message("File saved successfully");
+        if self.view.is_file_loaded() { 
+            self.save(None);
+        } else {
+            self.show_prompt();
+        }
+    }
+
+    ///保存文件到指定路径,如果当前接受的路径为空，则保存到当前文件
+    fn save(&mut self,file_name: Option<&str>) {
+        let result = if let Some(name) = file_name {
+            self.view.save_as(name)
+        } else {
+            self.view.save() 
+        }; 
+
+        if result.is_ok() {
+            self.message_bar.update_message("File saved successfully.");
         } else {
             self.message_bar.update_message("Error writing file");
         }
     }
-
 
     ///重置键入退出指令次数为0,当quit_times不为0的时候
     fn reset_quit_times(&mut self) {
@@ -211,10 +294,16 @@ impl Editor {
             return;
         }
 
+        let bottom_bar_row = self.terminal_size.rows.saturating_sub(1); //最后一行
         let _ = Terminal::hide_caret();
 
-        //渲染message_bar
-        self.message_bar.render(self.terminal_size.rows.saturating_sub(1)); //在倒数第一行显示
+        //处理渲染message_bar or command_bar
+        if let Some(command_bar) = &mut self.command_bar {
+            command_bar.render(bottom_bar_row);
+        } else {
+            self.message_bar.render(bottom_bar_row);
+        }
+
 
         //渲染message_bar
        if self.terminal_size.rows > 1 {
@@ -226,10 +315,22 @@ impl Editor {
             self.view.render(0);
        } 
 
-       
-        let _ = Terminal::move_caret_to(self.view.caret_position());
+      //渲染之后的光标位置 
+       let new_caret_position = if let Some(command_bar) = &self.command_bar {
+            Position {
+                column: command_bar.caret_position_end(),
+                row: bottom_bar_row,
+            }
+       } else {
+            self.view.caret_position()
+       };
 
+        //移动光标
+        let _ = Terminal::move_caret_to(new_caret_position);
+
+        //显示光标
         let _ = Terminal::show_caret();
+
         let _ = Terminal::execute();
 
     }
@@ -261,6 +362,7 @@ impl Default for Editor {
             terminal_size: Size::default(), 
             title: String::default(), 
             quit_times: 0,
+            command_bar: None,
         }
     }
 }

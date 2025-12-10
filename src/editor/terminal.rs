@@ -3,35 +3,9 @@ use crossterm::style::{Attribute, Print};
 use crossterm::{queue, Command};
 use crossterm::terminal::{Clear, ClearType, DisableLineWrap, EnableLineWrap, EnterAlternateScreen, LeaveAlternateScreen, SetTitle, disable_raw_mode, enable_raw_mode, size};
 use std::io::{stdout,Write,Error};
+use crate::editor::position::Position;
+use crate::editor::size::Size;
 pub struct Terminal {}
-#[derive(Clone, Copy, Eq, PartialEq)]
-pub struct Size { 
-    pub columns:usize,
-    pub rows: usize
-}
-
-#[derive(Clone, Copy,Default)]
-pub struct Position {
-    pub column:usize,
-    pub row:usize 
-}
-
-impl Default for Size {
-    fn default() -> Self {
-        let Size{columns,rows} = Terminal::size().unwrap();
-        Self { columns, rows }
-    }
-}
-
-
-impl Position {
-    pub const fn saturating_sub(self,other:Self) -> Self {
-        Self {
-            column: self.column.saturating_sub(other.column),
-            row: self.row.saturating_sub(other.row)
-        }
-    }
-}
 
 
 impl Terminal {

@@ -38,6 +38,11 @@ impl Buffer {
          })
     }
 
+    ///当前是否有文件已经加载
+    pub const fn is_file_loaded(&self) ->  bool {
+        self.file_info.has_path()
+    }
+
     ///文本的行数
     pub fn height(&self) -> usize {
         self.lines.len()

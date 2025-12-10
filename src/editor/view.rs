@@ -3,13 +3,15 @@ mod fileinfo;
 use std::io::Error;
 use std::cmp::min;
 use super::{NAME,VERSION};
-use super::terminal::{Size, Terminal};
+use super::terminal::Terminal;
+use crate::editor::size::Size;
 use super::documentstatus::DocumentStatus;
 use super::uicomponent::UIComponent;
 use super::command::{Edit,Move};
-use crate::editor::terminal::Position;
+use crate::editor::Position;
 use crate::editor::view::buffer::Buffer;
 use crate::editor::line::Line;
+use fileinfo::FileInfo;
 
 #[derive(Copy, Clone,Default)]
 pub struct Location {
@@ -124,9 +126,14 @@ impl View {
         }     
     }
 
-    /// 处理按键ctr+s
+    /// 保存当前信息到当前的文件地址
     pub fn save(&mut self) -> Result<(),Error> {
         self.buffer.save()
+    }
+
+    /// 保存当前信息到指定的文件地址
+    pub fn save_as(&mut self, file_name: &str) -> Result<(),Error> {
+        self.buffer.save_as(file_name)
     }
 
     ///处理按键Enter，键入后将当前分为两行
@@ -310,6 +317,11 @@ impl View {
         self.buffer = buffer;
         self.set_needs_redraw(true);
         Ok(())
+    }
+
+    ///用于判断是否需要输入文件名
+    pub const fn is_file_loaded(&self) -> bool {
+        self.buffer.is_file_loaded()
     }
 
 }

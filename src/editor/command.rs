@@ -4,8 +4,7 @@ use crossterm::event::{
 
 
 use std::{any::Any, convert::TryFrom};
-
-use super::terminal::Size;
+use crate::editor::size::Size;
 ///移动指令枚举
 pub enum Move {
     Pageup,
@@ -54,7 +53,7 @@ impl TryFrom<KeyEvent> for Move {
 ///编辑指令类型
 pub enum Edit {
    Insert(char),
-   InsertNewline,
+   InsertNewline, //enter
    Delete,
    DeleteBackward, //Backsapce
 }
@@ -88,6 +87,7 @@ pub enum System {
     Resize(Size),
     Save,
     Quit,
+    Dismiss,
 }
 
 impl TryFrom<KeyEvent> for System  {
@@ -99,6 +99,7 @@ impl TryFrom<KeyEvent> for System  {
        match (code,modifiers) {
            (KeyCode::Char('q'),KeyModifiers::CONTROL) => {Ok(System::Quit)},
            (KeyCode::Char('s'),KeyModifiers::CONTROL) => { Ok(System::Save)},
+           (KeyCode::Esc,KeyModifiers::NONE) => { Ok(System::Dismiss)}
             _ => Err(format!("unsupported key code {code:?} or modifier {modifiers:?}")),
        } 
 

@@ -1,5 +1,5 @@
 use std::io::Error;
-use crate::editor::terminal::Size;
+use crate::editor::size::Size;
 use std::time::{Instant,Duration};
 use super::uicomponent::UIComponent;
 use super::Terminal;
@@ -30,6 +30,8 @@ impl Message {
 }
 
 
+/// `Messagebar` 结构体用于在终端底部显示临时的用户消息。
+/// 这些消息会在一段预设时间后自动消失。
 ///代表简单信息的结构，比如键入ctr+s 显示 save
 #[derive(Default)]
 pub struct Messagebar {

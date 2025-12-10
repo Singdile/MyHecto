@@ -1,7 +1,7 @@
 use std::io::Error;
-
+use crate::editor::size::Size;
 use super::{
-    terminal::{Size,Terminal},
+    terminal::{Terminal},
     documentstatus::DocumentStatus,   
     uicomponent::UIComponent,
 };

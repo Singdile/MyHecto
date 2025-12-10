@@ -1,10 +1,12 @@
 use std::{cmp::min,io::Error};
-use crate::editor::terminal::{Size, Terminal};
+use crate::editor::terminal::{ Terminal};
 use super::{UIComponent};
 use super::line::Line;
 use crate::editor::command::{Edit};
+use crate::editor::size::Size;
 
 ///展现对未创建的文件的指令显示
+#[derive(Default)]
 pub struct CommandBar {
     prompt: String,
     value: Line,

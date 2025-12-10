@@ -1,5 +1,5 @@
 use std::io::Error;
-use super::terminal::Size;
+use crate::editor::size::Size;
 
 pub trait UIComponent {
     ///标记是否需要渲染
